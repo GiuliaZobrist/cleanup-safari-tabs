@@ -95,6 +95,102 @@ def backfill_stable_tags(vault_path: Path) -> int:
     return updated
 
 
+def repair_stable_links(vault_path: Path) -> int:
+    """
+    Repair wikilinks in Stable/ that point to stale paths after manual folder moves.
+
+    Fixes three patterns:
+    - Tab notes: backlink [[old-path/Tag/Tag|...]] → [[Stable/Tag/Tag|...]]
+    - Tag index tab links: [[old-path/stem|...]] or [[stem|...]] → [[Stable/Tag/stem|...]]
+    - Tag index session link: [[date/_Index|date]] → [[date/date|date]] (old naming)
+
+    Returns count of modified notes.
+    """
+    stable_dir = vault_path / STABLE
+    if not stable_dir.exists():
+        return 0
+
+    repaired = 0
+
+    for tag_dir in stable_dir.iterdir():
+        if not tag_dir.is_dir():
+            continue
+
+        folder_rel = f"{STABLE}/{tag_dir.name}"
+        known_stems = {
+            note.stem for note in tag_dir.glob("*.md") if note.stem != tag_dir.name
+        }
+
+        for note in tag_dir.glob("*.md"):
+            try:
+                text = note.read_text(encoding="utf-8")
+            except Exception:
+                continue
+
+            new_text = text
+
+            if note.stem == tag_dir.name:
+                # ---- Tag index ----
+
+                # Add title: to frontmatter if missing (enables human-readable graph labels)
+                tag_display = ""
+                for line in new_text.splitlines():
+                    if line.startswith("# "):
+                        tag_display = line[2:].strip()
+                        break
+                if tag_display and 'title:' not in new_text[:new_text.find('\n---', 3) + 1]:
+                    new_text = re.sub(
+                        r"^(---\n)",
+                        f'---\ntitle: "{tag_display}"\n',
+                        new_text,
+                        count=1,
+                    )
+
+                # Remove Session line entirely (date info doesn't belong in Stable)
+                new_text = re.sub(r"^Session: \[\[.*\]\]\n?", "", new_text, flags=re.MULTILINE)
+                new_text = re.sub(r"\n{3,}", "\n\n", new_text)
+
+                # Add parent nav link if missing
+                parent_link = "↑ [[Stable/Stable|Stable Tags]]"
+                if parent_link not in new_text:
+                    new_text = re.sub(
+                        r"(# [^\n]+\n)",
+                        f"\\1\n{parent_link}\n",
+                        new_text,
+                        count=1,
+                    )
+                    new_text = re.sub(r"\n{3,}", "\n\n", new_text)
+
+                # Fix each tab link that doesn't already point to this folder
+                for stem in known_stems:
+                    escaped_stem = re.escape(stem)
+                    escaped_rel = re.escape(folder_rel)
+                    new_text = re.sub(
+                        r"\[\[(?!" + escaped_rel + r"/)(?:[^\]\|]*/)?(" + escaped_stem + r")\|",
+                        f"[[{folder_rel}/{stem}|",
+                        new_text,
+                    )
+
+            else:
+                # ---- Tab note ----
+
+                # Fix backlink to tag index: [[anything/Tag/Tag| → [[Stable/Tag/Tag|
+                tag_note = tag_dir.name
+                escaped_tag = re.escape(tag_note)
+                escaped_rel = re.escape(folder_rel)
+                new_text = re.sub(
+                    r"\[\[(?!" + escaped_rel + r"/)(?:[^\]\|]*/)?" + escaped_tag + r"/" + escaped_tag + r"\|",
+                    f"[[{folder_rel}/{tag_note}|",
+                    new_text,
+                )
+
+            if new_text != text:
+                note.write_text(new_text, encoding="utf-8")
+                repaired += 1
+
+    return repaired
+
+
 def deduplicate_stable(vault_path: Path, session_rel: str) -> int:
     """
     Merge folders in Stable/ that normalize to the same name.
@@ -297,23 +393,25 @@ def _write_tag_index(
     session_rel: str,
     validated: bool = False,
 ) -> None:
-    session_link = f"[[{session_rel}/{session_rel}|{session_rel}]]"
     tab_lines = "\n".join(
         f"- [[{folder_rel}/{stem}|{title}]]"
         for stem, title in tab_notes
     )
     # stable/new tag drives graph node color in Obsidian
     status_tag = "stable" if validated else "new"
+    if validated:
+        nav_line = "\n↑ [[Stable/Stable|Stable Tags]]\n"
+    else:
+        nav_line = f"\nSession: [[{session_rel}/{session_rel}|{session_rel}]]\n"
     content = f"""---
+title: "{tag_name}"
 tags:
   - {sanitize_tag(tag_name)}
   - {status_tag}
 ---
 
 # {tag_name}
-
-Session: {session_link}
-
+{nav_line}
 ## Tabs ({len(tab_notes)})
 {tab_lines}
 """
@@ -327,11 +425,14 @@ def _write_stable_index(vault_path: Path, stable_tags: dict[str, tuple[int, str]
         for name, (count, folder_rel) in sorted(stable_tags.items())
     )
     content = f"""---
+title: "Stable Tags"
 tags:
   - stable
 ---
 
 # Stable — Validated Tags
+
+↑ [[Safari Tabs|Safari Tabs]]
 
 {len(stable_tags)} validated tags.
 
@@ -388,6 +489,8 @@ def _update_root_index(vault_path: Path, saved_date: str, total_tabs: int) -> No
     else:
         content = f"""# Safari Tabs Archive
 
+→ [[Stable/Stable|Stable Tags]]
+
 ## Sessions
 {new_entry}
 """
@@ -426,6 +529,10 @@ def write_vault(
     backfilled = backfill_stable_tags(vault_path)
     if backfilled:
         print(f"  Backfilled 'stable' tag into {backfilled} note(s) in Stable/")
+
+    repaired = repair_stable_links(vault_path)
+    if repaired:
+        print(f"  Repaired wikilinks in {repaired} note(s) in Stable/")
 
     merged = deduplicate_stable(vault_path, saved_date)
     if merged:
