@@ -25,6 +25,8 @@ export ANTHROPIC_API_KEY=sk-...
 ```
 
 > **(!) macOS Automation permission** — the first time you run this, macOS may block AppleScript access to Safari. If you see an "unauthorized" error, go to **System Settings → Privacy & Security → Automation** and enable **Safari** under your terminal app.
+>
+> ![macOS Automation permission screen showing Terminal with Safari enabled](assets/macos-automation-permission.png)
 
 ## Usage
 
