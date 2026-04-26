@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from safari_tabs.categorizer import categorize_tabs
 from safari_tabs.extractor import get_safari_tabs
 from safari_tabs.sanitizer import sanitize_tabs
-from safari_tabs.vault_writer import write_vault
+from safari_tabs.vault_writer import get_validated_tag_names, write_vault
 
 VAULT_PATH = Path.home() / "Documents" / "safari-tabs-vault"
 
@@ -37,10 +37,14 @@ def main() -> None:
                 print(f"      – {reason}")
         print()
 
+    validated_names = get_validated_tag_names(VAULT_PATH)
+    if validated_names:
+        print(f"Stable tags (will be preserved): {', '.join(validated_names)}")
+
     print("Categorizing with Claude...")
     try:
         client = anthropic.Anthropic()
-        clusters = categorize_tabs(tabs, client)
+        clusters, usage = categorize_tabs(tabs, client, validated_tags=validated_names or None)
     except anthropic.AuthenticationError:
         print(
             "Error: Invalid or missing Anthropic API key.\n"
@@ -64,7 +68,17 @@ def main() -> None:
     total = sum(len(t) for t in clusters.values())
     print(f"\nDone. Saved {total} tabs across {len(clusters)} tags.")
     print(f"Vault: {VAULT_PATH}")
-    print(f"Open _Index.md or the {saved_date}/ folder in Obsidian to browse.")
+    print(f"Open 'Safari Tabs.md' or the {saved_date}/ folder in Obsidian to browse.")
+
+    cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+    cache_write = getattr(usage, "cache_creation_input_tokens", 0) or 0
+    billed_input = usage.input_tokens - cache_read
+    print(
+        f"\nTokens: {usage.input_tokens} in ({cache_read} cached, {cache_write} written to cache)"
+        f" / {usage.output_tokens} out"
+        f" — billed input: {billed_input}"
+    )
+
     print("\nReminder: close or clear your Safari tabs now that they've been saved.")
 
 
