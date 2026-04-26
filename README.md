@@ -81,3 +81,12 @@ Tag index notes carry either `#stable` or `#new` in their frontmatter. To color 
 - Safari open with tabs
 - Python 3.11+
 - An Anthropic API key
+
+## Todo / Next steps
+
+- [ ] Run again and validate end-to-end behaviour in Obsidian graph view
+- [ ] Study the code and write essential tests (categorizer, vault writer, dedup logic)
+- [ ] Ask Claude to refactor for simplicity — reduce code, improve efficiency
+- [ ] Take screenshots of the Obsidian graph and vault, and improve the README with visuals
+- [ ] Security review and clean-up before making the repo public
+- [ ] Extend to other tab sources: Safari bookmarks and Safari tabs on iPhone
