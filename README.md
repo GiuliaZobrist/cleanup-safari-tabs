@@ -38,6 +38,12 @@ cp .env.example .env
 poetry run safari-tabs
 ```
 
+By default, notes are saved to `~/Documents/safari-tabs-vault/`. Override with:
+
+```bash
+SAFARI_TABS_VAULT=/path/to/your/vault poetry run safari-tabs
+```
+
 > **(!) macOS Automation permission** — the first time you run this, macOS may block AppleScript access to Safari. If you see an "unauthorized" error, go to **System Settings → Privacy & Security → Automation** and enable **Safari** under your terminal app.
 >
 > ![macOS Automation permission screen showing Terminal with Safari enabled](assets/macos-automation-permission.png)
@@ -92,4 +98,4 @@ Tag index notes carry `#stable` or `#new` in their frontmatter. To color them in
 
 ## Background
 
-Built out of a familiar problem: being the kind of person who finds something interesting on the internet every five minutes and opens a tab to "read it later," until the browser has 80 tabs and the laptop fan is screaming. This tool turns that habit into an archive — one command and the chaos becomes organized, dated, searchable notes in Obsidian. A security review and test suite are next before the repo goes public.
+Built out of a familiar problem: being the kind of person who finds something interesting on the internet every five minutes and opens a tab to "read it later," until the browser has 80 tabs and the laptop fan is screaming. This tool turns that habit into an archive — one command and the chaos becomes organized, dated, searchable notes in Obsidian.

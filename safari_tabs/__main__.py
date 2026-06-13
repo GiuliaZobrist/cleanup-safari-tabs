@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import date
 from pathlib import Path
@@ -10,11 +11,14 @@ from safari_tabs.extractor import get_safari_tabs
 from safari_tabs.sanitizer import sanitize_tabs
 from safari_tabs.vault_writer import get_validated_tag_names, write_vault
 
-VAULT_PATH = Path.home() / "Documents" / "safari-tabs-vault"
+DEFAULT_VAULT_PATH = Path.home() / "Documents" / "safari-tabs-vault"
 
 
 def main() -> None:
     load_dotenv()
+
+    vault_env = os.environ.get("SAFARI_TABS_VAULT")
+    VAULT_PATH = Path(vault_env) if vault_env else DEFAULT_VAULT_PATH
 
     print("Extracting Safari tabs...")
     try:
