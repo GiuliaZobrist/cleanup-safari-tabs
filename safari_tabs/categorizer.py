@@ -1,34 +1,10 @@
 import json
+from pathlib import Path
 from urllib.parse import urlparse
 
 import anthropic
 
-SYSTEM_PROMPT = """You are an expert at organizing browser tabs into meaningful tags.
-
-Each tab is shown as:  INDEX. [domain] Title — URL
-
-Rules:
-- Derive tag names from what is actually present in the tabs — do NOT use a fixed preset list
-  - If several tabs share a service or site (e.g. claude.ai, github.com, booking.com), name the tag after it (e.g. "Claude", "GitHub", "Hotels")
-  - If tabs share a topic across different sites (e.g. multiple recipe blogs), name the tag by topic (e.g. "Recipes")
-  - For a single miscellaneous tab with no natural group, use a short descriptive label
-- When a title is generic (e.g. "Sign In", "Home", "Loading", "403 Forbidden", "Untitled"), infer the topic from the domain and URL path instead
-- Every tab must be assigned to exactly one tag
-- Tag names should be short (1–3 words), title-cased
-- Create between 3 and 15 tags total
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "tags": [
-    {
-      "name": "TagName",
-      "tabs": [0, 3, 7]
-    }
-  ]
-}
-
-Where the tab indices refer to the 0-based position in the input list."""
-
+SYSTEM_PROMPT_PATH = "../prompts/system_prompt_categorizer.txt"
 
 def _domain(url: str) -> str:
     try:
@@ -66,14 +42,15 @@ def categorize_tabs(
         f"Here are {len(tabs)} open browser tabs to tag:\n\n{tab_lines}"
         f"{validated_hint}\n\nAssign each tab index to a tag. Return only JSON."
     )
-
+    system_prompt = Path(SYSTEM_PROMPT_PATH).read_text(encoding="utf-8").strip()
+    
     response = client.messages.create(
         model=model,
         max_tokens=8192,
         system=[
             {
                 "type": "text",
-                "text": SYSTEM_PROMPT,
+                "text": system_prompt,
                 "cache_control": {"type": "ephemeral"},
             }
         ],
