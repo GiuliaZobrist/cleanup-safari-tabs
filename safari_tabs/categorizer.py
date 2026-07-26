@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import anthropic
 
-SYSTEM_PROMPT_PATH = "../prompts/system_prompt_categorizer.txt"
+SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent.parent / "prompts" / "system_prompt_categorizer.txt"
 
 def _domain(url: str) -> str:
     try:
