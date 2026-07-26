@@ -368,20 +368,25 @@ def _tab_notes_in_folder(tag_dir: Path) -> list[tuple[str, str]]:
 def _write_tab_note(path: Path, tab: dict, folder_rel: str) -> None:
     title = tab["title"].replace('"', '\\"')
     tag_note = sanitize_filename(tab["tag"])
-    tag_link = f"[[{folder_rel}/{tag_note}|{tab['tag']}]]"
+    tag_link = f"[[{folder_rel}/{tag_note}|{tab['tag']}]]".replace('"', '\\"')
+
+    summary_block = ""
+    summary = tab.get("summary")
+    if summary:
+        summary_block = f"\n## Summary\n{summary}\n\n*— summarized by Claude*\n"
+
     content = f"""---
 url: {tab['url']}
 title: "{title}"
 tags:
   - {sanitize_tag(tab['tag'])}
+Backlink: "{tag_link}"
 ---
 
 # {tab['title']}
 
 [Open →]({tab['url']})
-
-{tag_link}
-"""
+{summary_block}"""
     path.write_text(content, encoding="utf-8")
 
 
