@@ -23,10 +23,7 @@ def main() -> None:
     print("Extracting Safari tabs...")
     try:
         tabs = get_safari_tabs()
-    except RuntimeError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
-    except ValueError as e:
+    except (RuntimeError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 

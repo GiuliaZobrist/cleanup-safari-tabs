@@ -60,7 +60,7 @@ def get_safari_tabs() -> list[dict]:
         if not title or title in ("", "Loading…", "Untitled"):
             try:
                 title = urlparse(url).hostname or url
-            except Exception:
+            except ValueError:
                 title = url
 
         tabs.append({"title": title, "url": url})

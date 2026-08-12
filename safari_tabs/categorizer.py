@@ -10,7 +10,7 @@ def _domain(url: str) -> str:
     try:
         host = urlparse(url).hostname or ""
         return host.removeprefix("www.")
-    except Exception:
+    except ValueError:
         return ""
 
 
