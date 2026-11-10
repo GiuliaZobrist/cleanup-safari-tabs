@@ -50,7 +50,7 @@ def get_validated_tag_names(vault_path: Path) -> list[str]:
                     break
             else:
                 names.append(tag_dir.name)
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             names.append(tag_dir.name)
     return names
 
@@ -89,7 +89,7 @@ def backfill_stable_tags(vault_path: Path) -> int:
 
             note.write_text("---" + new_fm + text[fm_end:], encoding="utf-8")
             updated += 1
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             pass
 
     return updated
@@ -124,7 +124,7 @@ def repair_stable_links(vault_path: Path) -> int:
         for note in tag_dir.glob("*.md"):
             try:
                 text = note.read_text(encoding="utf-8")
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 continue
 
             new_text = text
@@ -236,7 +236,7 @@ def deduplicate_stable(vault_path: Path, session_rel: str) -> int:
                     if line.startswith("# "):
                         tag_name = line[2:].strip()
                         break
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 pass
 
         existing_urls = _existing_urls(winner)
@@ -249,7 +249,7 @@ def deduplicate_stable(vault_path: Path, session_rel: str) -> int:
                     text = note.read_text(encoding="utf-8")
                     m = re.search(r"^url:\s*(\S+)", text, re.MULTILINE)
                     url = m.group(1).strip() if m else None
-                except Exception:
+                except (OSError, UnicodeDecodeError):
                     continue
 
                 if url and url in existing_urls:
@@ -302,7 +302,7 @@ def deduplicate_urls_in_stable(vault_path: Path, session_rel: str) -> int:
             try:
                 m = re.search(r"^url:\s*(\S+)", note.read_text(encoding="utf-8"), re.MULTILINE)
                 url = m.group(1).strip() if m else None
-            except Exception:
+            except (OSError, UnicodeDecodeError):
                 url = None
 
             if not url:
@@ -325,7 +325,7 @@ def deduplicate_urls_in_stable(vault_path: Path, session_rel: str) -> int:
                         if line.startswith("# "):
                             tag_name = line[2:].strip()
                             break
-                except Exception:
+                except (OSError, UnicodeDecodeError):
                     pass
             folder_rel = f"{STABLE}/{tag_dir.name}"
             _write_tag_index(tag_dir, tag_name, _tab_notes_in_folder(tag_dir), folder_rel, session_rel, validated=True)
@@ -342,7 +342,7 @@ def _existing_urls(tag_dir: Path) -> set[str]:
             m = re.search(r"^url:\s*(\S+)", note.read_text(encoding="utf-8"), re.MULTILINE)
             if m:
                 urls.add(m.group(1).strip())
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             pass
     return urls
 
@@ -355,7 +355,7 @@ def _tab_notes_in_folder(tag_dir: Path) -> list[tuple[str, str]]:
         try:
             m = re.search(r'^title:\s*"?(.+?)"?\s*$', note.read_text(encoding="utf-8"), re.MULTILINE)
             title = m.group(1) if m else note.stem
-        except Exception:
+        except (OSError, UnicodeDecodeError):
             title = note.stem
         notes.append((note.stem, title))
     return notes
@@ -368,20 +368,25 @@ def _tab_notes_in_folder(tag_dir: Path) -> list[tuple[str, str]]:
 def _write_tab_note(path: Path, tab: dict, folder_rel: str) -> None:
     title = tab["title"].replace('"', '\\"')
     tag_note = sanitize_filename(tab["tag"])
-    tag_link = f"[[{folder_rel}/{tag_note}|{tab['tag']}]]"
+    tag_link = f"[[{folder_rel}/{tag_note}|{tab['tag']}]]".replace('"', '\\"')
+
+    summary_block = ""
+    summary = tab.get("summary")
+    if summary:
+        summary_block = f"\n## Summary\n{summary}\n\n*— summarized by Claude*\n"
+
     content = f"""---
 url: {tab['url']}
 title: "{title}"
 tags:
   - {sanitize_tag(tab['tag'])}
+Backlink: "{tag_link}"
 ---
 
 # {tab['title']}
 
 [Open →]({tab['url']})
-
-{tag_link}
-"""
+{summary_block}"""
     path.write_text(content, encoding="utf-8")
 
 

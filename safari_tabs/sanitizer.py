@@ -56,18 +56,18 @@ def sanitize_url(url: str) -> SanitizeResult:
     describing what was removed (empty list = nothing changed).
     """
     result = SanitizeResult(url=url, original_url=url)
-
-    try:
-        parsed = urlparse(url)
-    except Exception:
-        return result  # unparseable — leave as-is
-
+    parsed = urlparse(url)
     changed = False
 
     # ------------------------------------------------------------------
     # 1. Embedded credentials in the netloc  (user:pass@host)
     # ------------------------------------------------------------------
-    if parsed.username or parsed.password:
+    try:
+        has_credentials = bool(parsed.username or parsed.password)
+    except ValueError:
+        has_credentials = False  # malformed netloc (e.g. bad port) — leave as-is
+
+    if has_credentials:
         result.reasons.append("embedded credentials (user:password@host)")
         # Rebuild netloc without the userinfo part
         host = parsed.hostname or ""
