@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from datetime import date
@@ -15,6 +16,10 @@ DEFAULT_VAULT_PATH = Path.home() / "Documents" / "safari-tabs-vault"
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(prog="safari-tabs")
+    parser.add_argument("--no-icloud", action="store_true", help="skip tabs from other devices (iCloud Tabs)")
+    args = parser.parse_args()
+
     load_dotenv()
 
     vault_env = os.environ.get("SAFARI_TABS_VAULT")
@@ -22,7 +27,7 @@ def main() -> None:
 
     print("Extracting Safari tabs...")
     try:
-        tabs = get_safari_tabs()
+        tabs = get_safari_tabs(include_icloud=not args.no_icloud)
     except (RuntimeError, ValueError) as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

@@ -5,6 +5,7 @@
 ## What it does
 
 - Reads every open tab from Safari via AppleScript — titles, URLs, all windows
+- Also includes iCloud Tabs (tabs open on your other devices) by reading Safari's `CloudTabs.db`; skip with `--no-icloud`
 - Sends them to Claude, which invents tag names from the actual content (no preset categories)
 - Writes each tab as a note in `~/Documents/safari-tabs-vault/`, organized by date and tag
 - Preserves "stable" tags across sessions — drag a folder into `Stable/` and new tabs for that topic get appended, not buried
@@ -47,6 +48,8 @@ SAFARI_TABS_VAULT=/path/to/your/vault poetry run safari-tabs
 > **(!) macOS Automation permission** — the first time you run this, macOS may block AppleScript access to Safari. If you see an "unauthorized" error, go to **System Settings → Privacy & Security → Automation** and enable **Safari** under your terminal app.
 >
 > ![macOS Automation permission screen showing Terminal with Safari enabled](assets/macos-automation-permission.png)
+
+> **(!) Full Disk Access for iCloud tabs** — `~/Library/Safari/CloudTabs.db` is protected by macOS. Enable your terminal under **System Settings → Privacy & Security → Full Disk Access**, otherwise a warning is printed and only local tabs are saved.
 
 **Common issues:**
 - `Safari is not running`: open Safari with at least one tab before running
